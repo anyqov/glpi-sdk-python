@@ -14,6 +14,7 @@
 
 from .version import __version__  # noqa
 from .glpi import GLPI  # noqa
+from .glpi import GlpiService  # noqa
 from .glpi_item import GlpiItem  # noqa
 from .item_profile import GlpiProfile  # noqa
 from .item_knowbase import GlpiKnowBase  # noqa

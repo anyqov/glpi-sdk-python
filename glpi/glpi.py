@@ -704,54 +704,90 @@ class GLPI(object):
 
         uri_query = "%s?" % item_name
 
-        for idx, c in enumerate(criteria['criteria']):
-            # build field argument
-            if idx == 0:
-                uri = ""
-            else:
-                uri = "&"
-            if 'field' in c and c['field'] is not None:
-                field_name = ""
-                # if int given, use it directly
-                if isinstance(c['field'], int) or c['field'].isdigit():
-                    field_name = int(c['field'])
-                # if name given, try to map to an int
-                elif c['field'] in field_map:
-                    field_name = field_map[c['field']]
+        if 'criteria' in criteria:
+            for idx, c in enumerate(criteria['criteria']):
+                # build field argument
+                if idx == 0:
+                    uri = ""
+                else:
+                    uri = "&"
+                if 'field' in c and c['field'] is not None:
+                    field_id = ""
+                    # if int given, use it directly
+                    if isinstance(c['field'], int) or c['field'].isdigit():
+                        field_id = int(c['field'])
+                    # if name given, try to map to an int
+                    elif c['field'] in field_map:
+                        field_id = field_map[c['field']]
+                    else:
+                        raise GlpiInvalidArgument(
+                            'Cannot map field name "' + c['field'] + '" to ' +
+                            'a field id for '+str(idx+1)+'. criterion '+str(c))
+                    uri = uri + "criteria[%d][field]=%d" % (idx, field_id)
                 else:
                     raise GlpiInvalidArgument(
-                        'Cannot map field name "' + c['field'] + '" to ' +
-                        'a field id for '+str(idx+1)+'. criterion '+str(c))
-                uri = uri + "criteria[%d][field]=%d" % (idx, field_name)
+                        'Missing "field" parameter for ' + str(idx+1) +
+                        'the criteria: ' + str(c))
+
+                # build value argument
+                if 'value' not in c or c['value'] is None:
+                    uri = uri + "&criteria[%d][value]=" % (idx)
+                else:
+                    uri = uri + "&criteria[%d][value]=%s" % (idx, c['value'])
+
+                # build searchtype argument
+                # -> optional! defaults to "contains" on the server if empty
+                if 'searchtype' in c and c['searchtype'] is not None:
+                    uri = (uri + "&criteria[%d][searchtype]=%s" % (idx, c['searchtype']))
+                else:
+                    uri = uri + "&criteria[%d][searchtype]=" % (idx)
+
+                # link is optional for 1st criterion according to docs...
+                # -> error if not present but more than one criterion
+                if 'link' not in c and idx > 0:
+                    raise GlpiInvalidArgument(
+                        'Missing link type for '+str(idx+1)+'. criterion '+str(c))
+                elif 'link' in c:
+                    uri = uri + "&criteria[%d][link]=%s" % (idx, c['link'])
+
+                # add this criterion to the query
+                uri_query = uri_query + uri
+
+        # add forcedisplay to the query
+        if 'forcedisplay' in criteria and criteria['forcedisplay'] is not None:
+            fd_list=[]
+            if isinstance(criteria['forcedisplay'], list) == False:
+                fd_list.append(criteria['forcedisplay'])
             else:
+                fd_list = criteria['forcedisplay'][:]
+            for idx, fd in enumerate(fd_list):
+                field_id = ""
+                # if int given, use it directly
+                if isinstance(fd, int) or fd.isdigit():
+                    field_id = int(fd)
+                # if name given, try to map to an int
+                elif fd in field_map:
+                    field_id = field_map[fd]
+                else:
+                    raise GlpiInvalidArgument(
+                        'Cannot map field name "' + fd + '" to a field id for ' + str(idx+1) + ' forcedisplay.')
+                uri_query = (uri_query + "&forcedisplay[%d]=%d" % (idx, field_id))
+
+        # add uid_cols to the query
+        if 'uid_cols' in criteria:
+            if criteria['uid_cols'] == True:
+                uri_query = (uri_query + "&uid_cols=%r" % (criteria['uid_cols']))
+            elif criteria['uid_cols'] is not None and criteria['uid_cols'] != False:
                 raise GlpiInvalidArgument(
-                    'Missing "field" parameter for ' + str(idx+1) +
-                    'the criteria: ' + str(c))
+                    'Incorrect parameter "uid_cols = '+str(criteria['uid_cols'])+'". Expected type - boolean.')
 
-            # build value argument
-            if 'value' not in c or c['value'] is None:
-                uri = uri + "&criteria[%d][value]=" % (idx)
-            else:
-                uri = uri + "&criteria[%d][value]=%s" % (idx, c['value'])
-
-            # build searchtype argument
-            # -> optional! defaults to "contains" on the server if empty
-            if 'searchtype' in c and c['searchtype'] is not None:
-                uri = (uri + "&criteria[%d][searchtype]=%s".format(idx,
-                       c['searchtype']))
-            else:
-                uri = uri + "&criteria[%d][searchtype]=" % (idx)
-
-            # link is optional for 1st criterion according to docs...
-            # -> error if not present but more than one criterion
-            if 'link' not in c and idx > 0:
+        # add withindexes to the query
+        if 'withindexes' in criteria:
+            if criteria['withindexes'] == True:
+                uri_query = (uri_query + "&withindexes=%r" % (criteria['withindexes']))
+            elif criteria['withindexes'] is not None and criteria['withindexes'] != False:
                 raise GlpiInvalidArgument(
-                    'Missing link type for '+str(idx+1)+'. criterion '+str(c))
-            elif 'link' in c:
-                uri = uri + "&criteria[%d][link]=%s" % (idx, c['link'])
-
-            # add this criterion to the query
-            uri_query = uri_query + uri
+                    'Incorrect parameter "withindexes = '+str(criteria['withindexes'])+'". Expected type - boolean.')
 
         try:
             if not self.api_has_session():
