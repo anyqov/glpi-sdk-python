@@ -11,7 +11,7 @@ def readme():
 
 __version__ = None
 exec(open('glpi/version.py').read())
-owner = 'truly-systems'
+owner = 'anyqov'
 repo = 'glpi-sdk-python'
 repo_url = ('https://github.com/{}/{}/archive/{}.tar.gz'.format(owner,
             repo, __version__))
@@ -22,7 +22,7 @@ setup(
     version=__version__,
     description='GLPI API SDK',
     # long_description=readme(),
-    url='https://github.com/truly-systems/glpi-sdk-python',
+    url='https://github.com/anyqov/glpi-sdk-python',
     download_url=repo_url,
     author='Marco Tulio R Braga',
     author_email='braga@mtulio.eng.br',

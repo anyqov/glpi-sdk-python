@@ -1,4 +1,4 @@
-# glpi-sdk-python
+# py-glpi
 
 [![Build Status](https://travis-ci.org/truly-systems/glpi-sdk-python.svg?branch=master)](https://travis-ci.org/truly-systems/glpi-sdk-python)
 ![PyPi version](https://img.shields.io/pypi/v/glpi.svg)
@@ -9,7 +9,7 @@ GLPI SDK written in Python.
 ## Description
 
 This SDK is written in Python to help developers integrate their apps, APIS and scripts in GLPI infrastructure. This SDK abstract
-the [GLPI Rest API](https://github.com/glpi-project/glpi/blob/9.1/bugfixes/apirest.md).
+the [GLPI Rest API](https://github.com/glpi-project/glpi/blob/master/apirest.md).
 
 To usage it, you should have username, password and API-Token from your GLPI server.
 
@@ -17,23 +17,23 @@ To create an API token: Setup > General > API :
 * `Enable Rest API` : `Yes`
 
 See also:
-* [GLPI Rest API](https://github.com/glpi-project/glpi/blob/9.1/bugfixes/apirest.md#glpi-rest-api--documentation)
+* [GLPI Rest API](https://github.com/glpi-project/glpi/blob/master/apirest.md#glpi-rest-api--documentation)
 
 
 ## Install
 
 Just install from:
 
-* PyPi:
+* PyPi (TODO):
 
   ```bash
-  pip install glpi
+  pip install py-glpi
   ```
 
 * repository (development):
 
   ```bash
-  pip install -e git+https://github.com/truly-systems/glpi-sdk-python.git@master#egg=glpi
+  pip install -e git+https://github.com/anyqov/glpi-sdk-python.git@master#egg=glpi
   ```
 
 * requirements.txt (development)
@@ -169,6 +169,16 @@ The Item value must be valid, otherwise you will get the following error.
                     sort_keys=True)
   ```
 
+### Get all Problems
+
+  ```python
+  print "Getting all Problems: "
+  print json.dumps(glpi.get_all('problem'),
+                    indent=4,
+                    separators=(',', ': '),
+                    sort_keys=True)
+  ```
+
 ### Get sub items
 
   ```python
@@ -272,27 +282,35 @@ curl -X GET 'http://path/to/apirest.php/search/Knowbaseitem?
     &criteria\[1\]\[field\]\=2
     &criteria\[1\]\[searchtype\]\=contains
     &criteria\[1\]\[value\]\=
-    &criteria\[1\]\[link\]\=AND'
+    &criteria\[1\]\[link\]\=AND
+    &forcedisplay\[0\]\=1
+    &forcedisplay\[1\]\=2
+    &uid_cols\=True
+    &withindexes\=False
 ```
 
 You can use it as follows:
 
 ```python
   print "Search 'Computers': "
-  criteria = { "criteria": [
-                {
-                  # "link": "AND", # this is optional for the first criterion
-                  "searchtype": None, # default to "contains"
-                  "field": "name",
-                  "value": "TEST"
-                },
-                {
-                  "link": "AND",
-                  #"searchtype": "bb", # default to "contains"
-                  "field": "otherserial",
-                  "value": "xxx"
-                }
-             ]}
+  criteria =  { "criteria": [
+                  {
+                    # "link": "AND", # this is optional for the first criterion
+                    "searchtype": None, # default to "contains"
+                    "field": "name",
+                    "value": "TEST"
+                  },
+                  {
+                    "link": "AND",
+                    #"searchtype": "bb", # default to "contains"
+                    "field": "otherserial",
+                    "value": "xxx"
+                  }
+                ],
+                "forcedisplay": ['name', 'id'],
+                "uid_cols": True,
+                "withindexes": True
+              }
   print json.dumps(glpi.search_engine('computer', criteria),
                     indent=4,
                     separators=(',', ': '),
@@ -318,9 +336,11 @@ You can use it as follows:
 
 **Limitations:**
 
-* You cannot use other search parameters other than `criteria` right now.
-* You cannot use the `metacriteria` parameter, which makes linked searches
-  unavailable.
+* forcedisplay: array of columns to display (default empty = use display preferences and searched criteria). Some columns will be always presents (1: id, 2: name, 80: Entity). Optional.
+* uid_cols (default false): a boolean to identify cols by the 'uniqid' of the searchoptions instead of a numeric value (see List searchOptions and 'uid' field)
+* withindexes (default false): a boolean to retrieve rows indexed by items id. By default this option is set to false, because order of json objects (which are identified by index) cannot be garrantued (from http://json.org/ : An object is an unordered set of name/value pairs). So, we provide arrays to guarantying sorted rows.
+* You cannot use other search parameters right now.
+* You cannot use the `metacriteria` parameter, which makes linked searches unavailable.
 
 ### Full example
 
